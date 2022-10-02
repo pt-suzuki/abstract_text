@@ -6,3 +6,7 @@ env
 ThreeLineSummaryDataset
 transformers
 .lock
+runs
+__pycache__
+.idea
+.vscode
