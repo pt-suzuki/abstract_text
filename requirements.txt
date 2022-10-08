@@ -44,7 +44,7 @@ mecab-python3==1.0.5
 multidict==6.0.2
 multiprocess==0.70.13
 nltk==3.7
-numpy==1.23.3
+numpy==1.21.6
 oauthlib==3.2.1
 opt-einsum==3.3.0
 outcome==1.2.0
