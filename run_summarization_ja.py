@@ -1,7 +1,21 @@
 import torch
-from transformers import pipeline, AutoTokenizer, AutoModelForSeq2SeqLM
+from transformers import AutoTokenizer, AutoModelForSeq2SeqLM
+import shutil
+import os
+from google.cloud import storage
+
 
 def summarization(text: str):
+    os.makedirs('output', exist_ok=True)
+
+    storage_client = storage.Client.from_service_account_json('service-account-key.json')
+    bucket = storage_client.bucket('fir-example-template.appspot.com')
+    blobs = bucket.list_blobs(prefix="ml/output/")
+    for blob in blobs:
+        if blob.name == 'ml/output/':
+            continue
+        down_load(blob.name, bucket)
+
     tokenizer = AutoTokenizer.from_pretrained('sonoisa/t5-base-japanese')
     model = AutoModelForSeq2SeqLM.from_pretrained('output/')
 
@@ -13,26 +27,14 @@ def summarization(text: str):
         summary_ids = model.generate(input)
         for id in summary_ids:
             result += tokenizer.decode(id)
+
+    shutil.rmtree('output')
     return result
 
-"""
-text = '「革新的な技術を確立して設備に実装していくなかで、いち早くCO2実質ゼロの鋼材を顧客に届けたい」。14日、日本製鉄の津之地大志営業企画室長はこう説明した。' \
-        '鉄鋼業界は日本の産業部門によるCO2排出量の4割を占める。日鉄も2050年のカーボンニュートラルを目指すが、実現には5兆円規模の環境投資が必要とみられ、資金をどうひねり出すかが喫緊の経営課題だ。' \
-        'そこで打ち出したのが、この「脱炭素鋼材」。鋼づくりの上工程から鉄鋼の塊を圧延して最終製品にする下工程まで、CO2の削減実績を総和で算定。' \
-        'その総量から任意の鉄鋼製品に削減分を割り当てて販売する。「マスバランス方式」と呼び、第三者の認証機関が認証する仕組みだ。' \
-        'CO2実質ゼロという付加価値があるため、「相応のプレミアム（割増金）を加味して販売する」（津之地室長）。' \
-        '23年度上期から年約30万トンをめどに国内外で販売を始める。本格的なマーケティングはこれからだが、営業部隊がどこまで価格を引き上げられるか腕の見せどころだ。' \
-        '次にポイントになるのが、この脱炭素鋼材の量をどこまで増やせるかだろう。日鉄の切れ目ない技術革新がその行く末を握るわけだが、23年からの販売に合わせて、' \
-        'CO2削減割り当ての先兵となるのが電炉によって高級鋼材を量産する技術だ。瀬戸内製鉄所広畑地区（兵庫県姫路市）では現在、大型の電炉が年内の営業運転に向け調整を繰り返している。' \
-        '電炉で製造するのはモーター用の電磁鋼板だ。モーターの中核部材で、日鉄のグローバルな競争力を象徴する製品でもある。関連特許の出願件数から生産量まで世界最大手とみられ、' \
-        'その技術は門外不出。21年10月、電動車に使う電磁鋼板の自社特許侵害で、最大顧客であるトヨタ自動車を提訴したのは記憶に新しい。' \
-        'そんな電磁鋼板はこれまで、鉄鉱石の酸素を取り除いた「還元鉄」と鉄スクラップを溶かす転炉法と呼ぶ製法で加工。この製法は微粉炭（石炭）などをエネルギーとして使い、膨大なCO2排出を伴っていた。' \
-        'しかし、日鉄はこれを一新。広畑地区に新設した年産能力70万トンの大型電炉で、主に鉄スクラップを原料に電磁鋼板を量産する技術を確立した。' \
-        '鉄スクラップは不純物が多く高級鋼の安定量産は至難の業とされてきたが、常識を覆してCO2実質ゼロを実現した。' \
-        'マスバランス方式の脱炭素鋼材は、まずこの電炉での電磁鋼板製造によって削減するCO2を割り当てた販売となる。これに続く革新的な技術が同社の設備に取り入れられれば、販売に弾みがつく。' \
-        'だが、もし顧客が不十分な対価しか払わなければ、環境投資が一気に経営の足かせになりかねない。顧客の反応が気になるところだが、市場もその販売価格の「プレミアム」の開示に注目しているはずだ。'
 
-result = summarization(text)
+def down_load(file_name, bucket):
+    blob = storage.Blob(file_name, bucket)
 
-print(result)
-"""
+    content = blob.download_as_string()
+    with open(file_name.lstrip('ml/'), mode='wb') as f:
+        f.write(content)
